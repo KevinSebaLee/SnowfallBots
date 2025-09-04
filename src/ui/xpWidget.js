@@ -2,8 +2,10 @@ import { AttachmentBuilder } from 'discord.js';
 import { createCanvas, loadImage, Image } from 'canvas';
 import axios from 'axios';
 import path from 'path';
-import supabase from '../../database/supabaseClient.js';
-import { BASE_EXP, GROWTH_RATE } from './xpMath.js';
+import { badgeRepository } from '../core/database/BadgeRepository.js';
+import { XP_CONFIG, BADGE_CONFIG } from '../config/constants.js';
+import { XPCalculator } from '../core/xp/XPCalculator.js';
+import { drawRoundedRect, drawCircularAvatar, getRankColor, drawTextWithShadow } from './canvasUtils.js';
 
 async function loadImageFromURL(url) {
   const response = await axios.get(url, { responseType: 'arraybuffer' });
@@ -49,27 +51,14 @@ export async function createXPWidget(user, userXP, posicion, id_guild, deviceWid
   const barFillColor = '#7b9fff';
   const xpTextColor = '#444';
   const levelTextColor = '#888';
-  let rankColor = '#444';
-  if (posicion === 1) rankColor = '#FFD700';
-  else if (posicion === 2) rankColor = '#C0C0C0';
-  else if (posicion === 3) rankColor = '#CD7F32';
+  let rankColor = getRankColor(posicion);
   const usernameColor = '#444';
 
   // Badge images
-
-  const badgeList = [
-    { id: 1, file: path.resolve('src/assets/badges/top1.png') },
-    { id: 2, file: path.resolve('src/assets/badges/top10.png') },
-    { id: 3, file: path.resolve('src/assets/badges/hablarFrost.png') },
-    { id: 4, file: path.resolve('src/assets/badges/fantasma.png') },
-    { id: 5, file: path.resolve('src/assets/badges/fantasmaX.png') },
-    { id: 6, file: path.resolve('src/assets/badges/6.png') },
-    { id: 7, file: path.resolve('src/assets/badges/activoNoche.png') },
-    { id: 8, file: path.resolve('src/assets/badges/activoDia.png') },
-    { id: 9, file: path.resolve('src/assets/badges/activo.png') },
-  ];
-
-  console.log(badgeList[0].file);
+  const badgeList = BADGE_CONFIG.BADGES.map(badge => ({
+    ...badge,
+    file: path.resolve(BADGE_CONFIG.BASE_PATH + badge.file)
+  }));
 
   // Create canvas
   const canvas = createCanvas(width, height);
@@ -108,17 +97,7 @@ export async function createXPWidget(user, userXP, posicion, id_guild, deviceWid
   // Draw rounded overlay at the bottom
   ctx.save();
   ctx.globalAlpha = 0.7;
-  ctx.beginPath();
-  ctx.moveTo(overlayX + overlayRadius, overlayY);
-  ctx.lineTo(overlayX + overlayWidth - overlayRadius, overlayY);
-  ctx.quadraticCurveTo(overlayX + overlayWidth, overlayY, overlayX + overlayWidth, overlayY + overlayRadius);
-  ctx.lineTo(overlayX + overlayWidth, overlayY + overlayHeight - overlayRadius);
-  ctx.quadraticCurveTo(overlayX + overlayWidth, overlayY + overlayHeight, overlayX + overlayWidth - overlayRadius, overlayY + overlayHeight);
-  ctx.lineTo(overlayX + overlayRadius, overlayY + overlayHeight);
-  ctx.quadraticCurveTo(overlayX, overlayY + overlayHeight, overlayX, overlayY + overlayHeight - overlayRadius);
-  ctx.lineTo(overlayX, overlayY + overlayRadius);
-  ctx.quadraticCurveTo(overlayX, overlayY, overlayX + overlayRadius, overlayY);
-  ctx.closePath();
+  drawRoundedRect(ctx, overlayX, overlayY, overlayWidth, overlayHeight, overlayRadius);
   ctx.fillStyle = overlayColor;
   ctx.fill();
   ctx.restore();
@@ -127,23 +106,7 @@ export async function createXPWidget(user, userXP, posicion, id_guild, deviceWid
   const avatarURL = user.displayAvatarURL({ extension: 'png', size: 256 });
   const avatarImg = await loadImage(avatarURL);
 
-  // Draw avatar with circular clipping
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2, true);
-  ctx.closePath();
-  ctx.clip();
-  ctx.drawImage(avatarImg, avatarX, avatarY, avatarSize, avatarSize);
-  ctx.restore();
-
-  // Draw thin black circle border around avatar to separate from the card
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2 + 1, 0, Math.PI * 2, true);
-  ctx.lineWidth = 2; // Thin border
-  ctx.strokeStyle = '#000';
-  ctx.stroke();
-  ctx.restore();
+  drawCircularAvatar(ctx, avatarImg, avatarX, avatarY, avatarSize, 1, '#000');
 
   // Username (inside overlay, proportional font)
   const usernameFontSize = isMobile ? Math.round(width * 0.07) : Math.round(width * 0.033);
@@ -174,11 +137,7 @@ export async function createXPWidget(user, userXP, posicion, id_guild, deviceWid
   const badgeSpacing = Math.round(width * 0.013);
   const badgeWrapLimit = isMobile ? 3 : 99;
 
-  const { data: userBadges } = await supabase
-    .from('user_badge')
-    .select('id_badge, id_guild')
-    .eq('id_user', user.id)
-    .eq('id_guild', id_guild);
+  const userBadges = await badgeRepository.getUserBadges(user.id, id_guild);
 
   let badgeCount = 0;
   for (const badge of badgeList) {
@@ -214,12 +173,7 @@ export async function createXPWidget(user, userXP, posicion, id_guild, deviceWid
   const gradoX = overlayX + Math.round(width * 0.023);
   const gradoY = overlayY + Math.round(overlayHeight * (isMobile ? 0.30 : 0.65));
 
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.35)';
-  ctx.shadowBlur = Math.round(width * 0.01);
-  ctx.fillStyle = '#444';
-  ctx.fillText(gradoText, gradoX, gradoY);
-  ctx.restore();
+  drawTextWithShadow(ctx, gradoText, gradoX, gradoY);
 
   ctx.save();
   ctx.font = `bold ${isMobile ? Math.round(width * 0.13) : Math.round(width * 0.053)}px Arial`;
@@ -243,38 +197,18 @@ export async function createXPWidget(user, userXP, posicion, id_guild, deviceWid
 
   // XP Bar background
   ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(barNewX + barRadius, barNewY);
-  ctx.lineTo(barNewX + barNewWidth - barRadius, barNewY);
-  ctx.quadraticCurveTo(barNewX + barNewWidth, barNewY, barNewX + barNewWidth, barNewY + barRadius);
-  ctx.lineTo(barNewX + barNewWidth, barNewY + barHeight - barRadius);
-  ctx.quadraticCurveTo(barNewX + barNewWidth, barNewY + barHeight, barNewX + barNewWidth - barRadius, barNewY + barHeight);
-  ctx.lineTo(barNewX + barRadius, barNewY + barHeight);
-  ctx.quadraticCurveTo(barNewX, barNewY + barHeight, barNewX, barNewY + barHeight - barRadius);
-  ctx.lineTo(barNewX, barNewY + barRadius);
-  ctx.quadraticCurveTo(barNewX, barNewY, barNewX + barRadius, barNewY);
-  ctx.closePath();
+  drawRoundedRect(ctx, barNewX, barNewY, barNewWidth, barHeight, barRadius);
   ctx.fillStyle = barBgColor;
   ctx.fill();
   ctx.restore();
 
   // XP Bar fill
-  const xpNeeded = Math.round(BASE_EXP * ((Math.pow(GROWTH_RATE, userXP.global_level) - 1) / (GROWTH_RATE - 1)));
+  const xpNeeded = XPCalculator.calculateTotalXPForLevel(userXP.global_level);
   const percent = Math.min(userXP.global_xp / xpNeeded, 1);
 
   if (percent > 0) {
     ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(barNewX + barRadius, barNewY);
-    ctx.lineTo(barNewX + barNewWidth - barRadius, barNewY);
-    ctx.quadraticCurveTo(barNewX + barNewWidth, barNewY, barNewX + barNewWidth, barNewY + barRadius);
-    ctx.lineTo(barNewX + barNewWidth, barNewY + barHeight - barRadius);
-    ctx.quadraticCurveTo(barNewX + barNewWidth, barNewY + barHeight, barNewX + barNewWidth - barRadius, barNewY + barHeight);
-    ctx.lineTo(barNewX + barRadius, barNewY + barHeight);
-    ctx.quadraticCurveTo(barNewX, barNewY + barHeight, barNewX, barNewY + barHeight - barRadius);
-    ctx.lineTo(barNewX, barNewY + barRadius);
-    ctx.quadraticCurveTo(barNewX, barNewY, barNewX + barRadius, barNewY);
-    ctx.closePath();
+    drawRoundedRect(ctx, barNewX, barNewY, barNewWidth, barHeight, barRadius);
     ctx.clip();
 
     ctx.fillStyle = barFillColor;
@@ -284,17 +218,7 @@ export async function createXPWidget(user, userXP, posicion, id_guild, deviceWid
 
   // XP Bar border
   ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(barNewX + barRadius, barNewY);
-  ctx.lineTo(barNewX + barNewWidth - barRadius, barNewY);
-  ctx.quadraticCurveTo(barNewX + barNewWidth, barNewY, barNewX + barNewWidth, barNewY + barRadius);
-  ctx.lineTo(barNewX + barNewWidth, barNewY + barHeight - barRadius);
-  ctx.quadraticCurveTo(barNewX + barNewWidth, barNewY + barHeight, barNewX + barNewWidth - barRadius, barNewY + barHeight);
-  ctx.lineTo(barNewX + barRadius, barNewY + barHeight);
-  ctx.quadraticCurveTo(barNewX, barNewY + barHeight, barNewX, barNewY + barHeight - barRadius);
-  ctx.lineTo(barNewX, barNewY + barRadius);
-  ctx.quadraticCurveTo(barNewX, barNewY, barNewX + barRadius, barNewY);
-  ctx.closePath();
+  drawRoundedRect(ctx, barNewX, barNewY, barNewWidth, barHeight, barRadius);
   ctx.lineWidth = Math.max(2, Math.round(width * 0.005));
   ctx.strokeStyle = '#fff';
   ctx.stroke();

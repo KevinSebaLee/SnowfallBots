@@ -1,4 +1,11 @@
+/**
+ * Ship Widget
+ * Renders ship compatibility images using Canvas
+ */
+
 import { createCanvas, loadImage } from 'canvas';
+import { COLORS } from '../config/constants.js';
+import { drawRoundedRect, drawCircularAvatar } from './canvasUtils.js';
 
 // shipUtils.js
 
@@ -49,18 +56,7 @@ export async function createUsersCanva(userA, userB, porcent) {
     const rectWidth = width - padding / 2;
     const radius = 40;
 
-    // Draw rounded rectangle
-    ctx.beginPath();
-    ctx.moveTo(rectX + radius, rectY);
-    ctx.lineTo(rectX + rectWidth - radius, rectY);
-    ctx.quadraticCurveTo(rectX + rectWidth, rectY, rectX + rectWidth, rectY + radius);
-    ctx.lineTo(rectX + rectWidth, rectY + rectHeight - radius);
-    ctx.quadraticCurveTo(rectX + rectWidth, rectY + rectHeight, rectX + rectWidth - radius, rectY + rectHeight);
-    ctx.lineTo(rectX + radius, rectY + rectHeight);
-    ctx.quadraticCurveTo(rectX, rectY + rectHeight, rectX, rectY + rectHeight - radius);
-    ctx.lineTo(rectX, rectY + radius);
-    ctx.quadraticCurveTo(rectX, rectY, rectX + radius, rectY);
-    ctx.closePath();
+    drawRoundedRect(ctx, rectX, rectY, rectWidth, rectHeight, radius);
     ctx.fill();
     ctx.restore();
 
@@ -71,21 +67,8 @@ export async function createUsersCanva(userA, userB, porcent) {
     ]);
 
     // Draw avatars
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(padding + avatarSize / 2, height / 2, avatarSize / 2, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.clip();
-    ctx.drawImage(avatarA, padding, height / 2 - avatarSize / 2, avatarSize, avatarSize);
-    ctx.restore();
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(width - padding - avatarSize / 2, height / 2, avatarSize / 2, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.clip();
-    ctx.drawImage(avatarB, width - padding - avatarSize, height / 2 - avatarSize / 2, avatarSize, avatarSize);
-    ctx.restore();
+    drawCircularAvatar(ctx, avatarA, padding, height / 2 - avatarSize / 2, avatarSize);
+    drawCircularAvatar(ctx, avatarB, width - padding - avatarSize, height / 2 - avatarSize / 2, avatarSize);
 
     // Draw heart in the middle
     ctx.font = '64px Sans';

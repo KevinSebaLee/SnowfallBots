@@ -1,36 +1,47 @@
-import xpCommand from '../commands/xp.js';
-import resetCommand from '../commands/reset.js';
-import leaderboardCommand from '../commands/leaderboard.js';
-import ball8Command from '../commands/8ball.js';
-import setXpCommand from '../commands/setXP.js';
-import shipCommand from '../commands/ship.js';
+/**
+ * Interaction Create Event Handler
+ * Handles slash command interactions
+ */
 
-export default function (client) {
+import ball8Command from '../commands/8ball_simple.js';
+import rankCommand from '../commands/rank_simple.js';
+
+const commands = {
+  '8ball': ball8Command,
+  'rank': rankCommand
+};
+
+export default function registerInteractionCreate(client) {
   client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isCommand()) return;
+    if (!interaction.isChatInputCommand()) return;
 
-    if (interaction.commandName === 'rank') {
-      await xpCommand(interaction);
+    const command = commands[interaction.commandName];
+    
+    if (!command) {
+      console.log(`No command matching ${interaction.commandName} was found.`);
+      await interaction.reply({ 
+        content: `Command \`${interaction.commandName}\` not implemented yet.`, 
+        flags: 64 // Use flags instead of ephemeral
+      });
+      return;
     }
 
-    if (interaction.commandName === 'resetlevel') {
-      await resetCommand(interaction);
-    }
-
-    if (interaction.commandName === 'leaderboard') {
-      await leaderboardCommand(interaction);
-    }
-
-    if(interaction.commandName === '8ball'){
-      await ball8Command(interaction);
-    }
-
-    if(interaction.commandName === 'setxp'){
-      await setXpCommand(interaction);
-    }
-
-    if(interaction.commandName === 'ship'){
-      await shipCommand(interaction);
+    try {
+      await command.execute(interaction);
+    } catch (error) {
+      console.error(`Error executing ${interaction.commandName}:`, error);
+      
+      const errorMessage = 'There was an error while executing this command!';
+      
+      try {
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp({ content: errorMessage, flags: 64 });
+        } else {
+          await interaction.reply({ content: errorMessage, flags: 64 });
+        }
+      } catch (followUpError) {
+        console.error('Error sending error message:', followUpError);
+      }
     }
   });
 }

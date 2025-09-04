@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { createUsersCanva } from "../utils/shipUtils.js";
+import { createUsersCanva } from "../ui/index.js";
 
 const data = new SlashCommandBuilder()
     .setName("ship")
@@ -15,7 +15,7 @@ const data = new SlashCommandBuilder()
             .setRequired(false)
     );
 
-export const shipCommand = async (interaction) => {
+const execute = async (interaction) => {
     const user1 = interaction.options.getUser("member_1");
     const user2 = interaction.options.getUser("member_2") || interaction.user;
 
@@ -91,5 +91,5 @@ export const shipCommand = async (interaction) => {
     }
 };
 
-shipCommand.data = data;
+const shipCommand = { data, execute };
 export default shipCommand;

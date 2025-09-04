@@ -1,43 +1,50 @@
-import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+/**
+ * 8Ball Command
+ * Magic 8-ball responses
+ */
+
+import { SlashCommandBuilder } from 'discord.js';
+
+const responses = [
+  'Es cierto.',
+  'Es decididamente así.',
+  'Sin lugar a dudas.',
+  'Sí definitivamente.',
+  'Puedes confiar en ello.',
+  'Como yo lo veo, sí.',
+  'Muy probable.',
+  'Las perspectivas son buenas.',
+  'Sí.',
+  'Las señales apuntan a que sí.',
+  'Respuesta confusa, vuelve a intentarlo.',
+  'Pregunta de nuevo más tarde.',
+  'Mejor no decirte ahora.',
+  'No se puede predecir ahora.',
+  'Concéntrate y pregunta de nuevo.',
+  'No cuentes con ello.',
+  'Mi respuesta es no.',
+  'Mis fuentes dicen que no.',
+  'Las perspectivas no son tan buenas.',
+  'Muy dudoso.'
+];
 
 const data = new SlashCommandBuilder()
-  .setName("8ball")
-  .setDescription("Pregunta a la bola 8 mágica")
-  .addStringOption((option) =>
-    option
-      .setName("question")
-      .setDescription("La pregunta que quieres hacer a la bola 8 mágica")
+  .setName('8ball')
+  .setDescription('Pregúntale algo a la bola mágica')
+  .addStringOption(option =>
+    option.setName('question')
+      .setDescription('Tu pregunta')
       .setRequired(true)
   );
 
-const ball8Command = async (interaction) => {
-  const question = interaction.options.getString("question");
+const execute = async (interaction) => {
+  const question = interaction.options.getString('question');
+  const response = responses[Math.floor(Math.random() * responses.length)];
+  
+  await interaction.reply({
+    content: `🎱 **Pregunta:** ${question}\n**Respuesta:** ${response}`
+  });
+};
 
-const responses = [
-    "Sí",
-    "No",
-    "Quizás",
-    "Pregunta de nuevo más tarde",
-    "Definitivamente",
-    "Absolutamente no",
-    "Es seguro",
-    "Muy dudoso",
-    "Sin duda",
-    "Mis fuentes dicen que no"
-];
-
-  const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-
-await interaction.reply({
-    embeds: [
-        new EmbedBuilder()
-            .setTitle("🎱 Magic 8-Ball")
-            .setDescription(`**Pregunta:** ${question}\n**Respuesta:** ${randomResponse}`)
-            .setColor(0x1abc9c)
-    ]
-});
-}  
-
-ball8Command.data = data;
-
+const ball8Command = { data, execute };
 export default ball8Command;

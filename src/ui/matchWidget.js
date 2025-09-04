@@ -1,3 +1,8 @@
+/**
+ * Match Widget
+ * Renders match images by joining two images side by side
+ */
+
 import { createCanvas, loadImage } from 'canvas';
 
 /**

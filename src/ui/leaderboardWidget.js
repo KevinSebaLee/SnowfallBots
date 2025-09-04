@@ -1,4 +1,12 @@
+/**
+ * Leaderboard Widget
+ * Renders leaderboard images using Canvas
+ */
+
 import { createCanvas, loadImage } from 'canvas';
+import { XP_CONFIG, COLORS, DISCORD_CONFIG } from '../config/constants.js';
+import { XPCalculator } from '../core/xp/XPCalculator.js';
+import { drawRoundedRect, drawRoundedRectLeft, drawCircularAvatar, getRankColor } from './canvasUtils.js';
 
 export async function drawLeaderboard(users) {
     const width = 650;
@@ -11,8 +19,6 @@ export async function drawLeaderboard(users) {
     const xpBarHeight = 18;
     const xpBarRadius = xpBarHeight / 2;
     const levelBoxSize = avatarSize;
-    const GROWTH_RATE = 1.025; // Growth rate for XP needed per level
-    const BASE_EXP = 50; // Base XP needed for level 1
 
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
@@ -31,20 +37,14 @@ export async function drawLeaderboard(users) {
         // Load avatar image
         let avatarImg;
         try {
-            avatarImg = await loadImage(user.avatarUrl || 'https://cdn.discordapp.com/embed/avatars/0.png');
+            avatarImg = await loadImage(user.avatarUrl || DISCORD_CONFIG.DEFAULT_AVATAR);
         } catch (e) {
-            avatarImg = await loadImage('https://cdn.discordapp.com/embed/avatars/0.png');
+            avatarImg = await loadImage(DISCORD_CONFIG.DEFAULT_AVATAR);
         }
 
         // Draw avatar (circle)
         const avatarX = padding;
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(avatarX + avatarSize / 2, y + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2, true);
-        ctx.closePath();
-        ctx.clip();
-        ctx.drawImage(avatarImg, avatarX, y, avatarSize, avatarSize);
-        ctx.restore();
+        drawCircularAvatar(ctx, avatarImg, avatarX, y, avatarSize);
 
         // Align name and XP bar vertically centered with avatar
         const centerY = y + avatarSize / 2;
@@ -53,7 +53,7 @@ export async function drawLeaderboard(users) {
         // Calculate XP percent for the bar
         const level = user.global_level ?? user.level ?? 1;
         const xp = user.global_xp ?? user.xp ?? 0;
-        const xpNeeded = BASE_EXP * ((Math.pow(GROWTH_RATE, level) - 1) / (GROWTH_RATE - 1));
+        const xpNeeded = XPCalculator.calculateTotalXPForLevel(level);
         const xpPercent = Math.max(0, Math.min(1, xp / xpNeeded));
 
         // XP bar should occupy the whole image, except for avatar and number box
@@ -90,19 +90,18 @@ export async function drawLeaderboard(users) {
         // Draw XP bar background (rounded)
         ctx.save();
         ctx.fillStyle = '#cdcecf';
-        roundRect(ctx, xpBarX, xpBarY, xpBarWidth, xpBarHeight, xpBarRadius);
+        drawRoundedRect(ctx, xpBarX, xpBarY, xpBarWidth, xpBarHeight, xpBarRadius);
         ctx.fill();
         ctx.restore();
 
         // Draw XP bar fill (rounded, only on the left if not full, both if full)
         ctx.save();
-        ctx.beginPath();
         if (xpPercent === 1) {
             // Full bar, round both ends
-            roundRect(ctx, xpBarX, xpBarY, xpBarWidth, xpBarHeight, xpBarRadius);
+            drawRoundedRect(ctx, xpBarX, xpBarY, xpBarWidth, xpBarHeight, xpBarRadius);
         } else {
             // Not full, round only left side
-            roundRectLeft(ctx, xpBarX, xpBarY, xpBarWidth * xpPercent, xpBarHeight, xpBarRadius);
+            drawRoundedRectLeft(ctx, xpBarX, xpBarY, xpBarWidth * xpPercent, xpBarHeight, xpBarRadius);
         }
         ctx.clip();
         ctx.fillStyle = '#6ab0ff';
@@ -130,18 +129,7 @@ export async function drawLeaderboard(users) {
         const numberX = width - numberWidth / 2 - padding;
         const numberY = y + avatarSize / 2;
 
-        if(i+1 === 1){
-            ctx.fillStyle = '#efb810';
-        }
-        else if(i+1 === 2){
-            ctx.fillStyle = '#cdcdcd';
-        }
-        else if(i+1 === 3){
-            ctx.fillStyle = '#bf8970';
-        }
-        else{
-            ctx.fillStyle = '#9c9c9c';
-        }
+        ctx.fillStyle = getRankColor(i + 1);
         ctx.fillText(`#${i + 1}`, numberX, numberY);
         ctx.restore();
     }
@@ -150,32 +138,4 @@ export async function drawLeaderboard(users) {
         buffer: canvas.toBuffer('image/png'),
         filename: 'leaderboard.png'
     };
-}
-
-// Draws a fully rounded rectangle (all corners)
-function roundRect(ctx, x, y, width, height, radius) {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();
-}
-
-// Draws a rectangle with only the left corners rounded
-function roundRectLeft(ctx, x, y, width, height, radius) {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width, y);
-    ctx.lineTo(x + width, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();
 }

@@ -1,26 +1,11 @@
-import xpCommand from '../commands/xp.js';
-import resetCommand from '../commands/reset.js';
-import leaderboardCommand from '../commands/leaderboard.js';
-import ball8Command from '../commands/8ball.js';
-import setXpCommand from '../commands/setXP.js';
-import shipCommand from '../commands/ship.js';
+/**
+ * Guild Create Event Handler
+ * Handles when the bot joins a new guild
+ */
 
-export default function (client) {
+export default function registerGuildCreateEvent(client) {
   client.on('guildCreate', async (guild) => {
-    const commands = [
-      xpCommand.data,
-      resetCommand.data,
-      leaderboardCommand.data,
-      ball8Command.data,
-      setXpCommand.data,
-      shipCommand.data
-    ].filter(Boolean);
-
-    try {
-      await guild.commands.set(commands);
-      console.log(`Registered slash commands for new guild: ${guild.name} (${guild.id})`);
-    } catch (err) {
-      console.error(`Failed to register commands for new guild ${guild.name} (${guild.id}):`, err);
-    }
+    console.log(`Joined new guild: ${guild.name} (ID: ${guild.id})`);
+    console.log(`Guild has ${guild.memberCount} members`);
   });
 }
