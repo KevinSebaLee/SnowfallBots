@@ -1,10 +1,7 @@
-/**
- * Rank Command - Simple Version
- * Shows user's current XP and level
- */
-
 import { SlashCommandBuilder } from 'discord.js';
 import { xpService } from '../core/xp/XPService.js';
+import { createXPWidget } from '../ui/index.js';
+import { userRepository } from '../core/database/UserRepository.js';
 
 const data = new SlashCommandBuilder()
   .setName('rank')
@@ -23,26 +20,82 @@ const execute = async (interaction) => {
     const userData = await xpService.getUserXP(targetUser.id, interaction.guildId);
     
     if (!userData) {
-      await interaction.editReply(`${targetUser.username} no tiene XP registrado aún.`);
+      await interaction.editReply(`${targetUser.username} no tiene XP registrado aún en este servidor.`);
       return;
     }
     
-    // Create text-based rank display
-    const content = `**${targetUser.username}**\n` +
-                   `🎯 Nivel: **${userData.level}**\n` +
-                   `⭐ XP: **${userData.xp}**\n` +
-                   `📈 XP para siguiente nivel: **${userData.xpForNext || 'N/A'}**`;
+    // Get user's rank position
+    const rank = await userRepository.getUserRank(interaction.guildId, userData.level, userData.xp);
     
-    await interaction.editReply(content);
+    // Prepare user object for the widget
+    const userForWidget = {
+      id: targetUser.id,
+      username: targetUser.username,
+      discriminator: targetUser.discriminator || '0000',
+      displayAvatarURL: () => targetUser.displayAvatarURL({ extension: 'png', size: 256 })
+    };
     
+    // Create XP widget image
+    try {
+      const widget = await createXPWidget(
+        userForWidget,
+        {
+          global_level: userData.level,
+          global_xp: userData.xp
+        },
+        rank,
+        interaction.guildId
+      );
+      
+      // Send the generated image
+      await interaction.editReply({ files: [widget] });
+    } catch (widgetError) {
+      console.error('Error creating XP widget:', widgetError);
+      
+      // Fallback to text if widget creation fails
+      const content = `**${targetUser.username}**\n` +
+                     `🎯 Nivel: **${userData.level}**\n` +
+                     `⭐ XP: **${userData.xp}**\n` +
+                     `📊 Servidor: **${interaction.guild.name}**\n` +
+                     `🏆 Posición: **${rank || 'N/A'}**`;
+      
+      await interaction.editReply(content);
+    }
   } catch (error) {
     console.error('Error in rank command:', error);
     
-    const errorMessage = 'Error al obtener la información de rango.';
-    if (interaction.deferred) {
-      await interaction.editReply({ content: errorMessage });
-    } else {
-      await interaction.reply({ content: errorMessage, flags: 64 }); // 64 = ephemeral flag
+    // Fallback to text if image generation fails
+    try {
+      const targetUser = interaction.options.getUser('usuario') || interaction.user;
+      const userData = await xpService.getUserXP(targetUser.id, interaction.guildId);
+      
+      if (userData) {
+        const fallbackContent = `**${targetUser.username}**\n` +
+                               `🎯 Nivel: **${userData.level || 'N/A'}**\n` +
+                               `⭐ XP: **${userData.xp || 'N/A'}**\n` +
+                               `📊 Servidor: **${interaction.guild.name}**`;
+        
+        if (interaction.deferred) {
+          await interaction.editReply({ content: fallbackContent });
+        } else {
+          await interaction.reply({ content: fallbackContent, flags: 64 });
+        }
+      } else {
+        const errorMessage = 'Error al obtener la información de rango.';
+        if (interaction.deferred) {
+          await interaction.editReply({ content: errorMessage });
+        } else {
+          await interaction.reply({ content: errorMessage, flags: 64 });
+        }
+      }
+    } catch (fallbackError) {
+      console.error('Error in fallback:', fallbackError);
+      const errorMessage = 'Error al obtener la información de rango.';
+      if (interaction.deferred) {
+        await interaction.editReply({ content: errorMessage });
+      } else {
+        await interaction.reply({ content: errorMessage, flags: 64 });
+      }
     }
   }
 };

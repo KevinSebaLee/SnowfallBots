@@ -1,87 +1,90 @@
-/**
- * Ship Widget
- * Renders ship compatibility images using Canvas
- */
-
 import { createCanvas, loadImage } from 'canvas';
 import { COLORS } from '../config/constants.js';
 import { drawRoundedRect, drawCircularAvatar } from './canvasUtils.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 // shipUtils.js
 
 export async function createUsersCanva(userA, userB, porcent) {
-    const width = 500;
+    const width = 450;
     const height = 250;
-    const avatarSize = 140; // Increased from 100 to 140
-    const padding = 30;
+    const avatarSize = 95;
+    const padding = 40;
 
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // Background with an image (cover, not stretched)
+    // Background with a solid gradient instead of an image
     ctx.save();
-    const backgroundImage = await loadImage('https://media.discordapp.net/attachments/1358138478826622996/1385776142413336726/thumb-1920-1344249.png?ex=68574c1a&is=6855fa9a&hm=905fbdb519f56fb793e2f50ae96149b9cc704cc8663444625a854519e03ed4a0&=&width=1635&height=920');
 
-    // Calculate aspect ratios
-    const bgAspect = backgroundImage.width / backgroundImage.height;
+    const background = await loadImage(path.join(dirname(fileURLToPath(import.meta.url)), '../assets/banner/ship_banner.gif'));
+
+    ctx.drawImage(background, 0, 0, width, height);
+
+    // Set up variables for later positioning
     const canvasAspect = width / height;
 
-    let sx = 0, sy = 0, sWidth = backgroundImage.width, sHeight = backgroundImage.height;
-
-    if (bgAspect > canvasAspect) {
-        // Background is wider than canvas: crop sides
-        sWidth = backgroundImage.height * canvasAspect;
-        sx = (backgroundImage.width - sWidth) / 2;
-    } else {
-        // Background is taller than canvas: crop top/bottom
-        sHeight = backgroundImage.width / canvasAspect;
-        sy = (backgroundImage.height - sHeight) / 2;
-    }
-
-    ctx.drawImage(
-        backgroundImage,
-        sx, sy, sWidth, sHeight,
-        0, 0, width, height
-    );
+    // We've replaced the background image with a gradient, so no need for this code
     ctx.restore();
 
     // Draw dark rounded rectangle behind avatars, heart, porcent, and names
     ctx.save();
     ctx.globalAlpha = 0.7;
     ctx.fillStyle = '#18191c';
-    // Rectangle covers avatars, heart/porcent, and names
-    const rectHeight = 180;
+
+    // Make rectangle slightly bigger and ensure avatars & heart fit inside
+    const rectHeight = 170;
     const rectY = (height - rectHeight) / 2;
-    const rectX = padding / 4;
-    const rectWidth = width - padding / 2;
-    const radius = 40;
+    const rectX = padding - 10;
+    const rectWidth = width - (padding - 10) * 2;
+    const radius = 36;
 
     drawRoundedRect(ctx, rectX, rectY, rectWidth, rectHeight, radius);
     ctx.fill();
     ctx.restore();
 
-    // Load avatars
-    const [avatarA, avatarB] = await Promise.all([
-        loadImage(userA),
-        loadImage(userB)
-    ]);
+    // Load avatars with error handling
+    let avatarA, avatarB;
+    try {
+        avatarA = await loadImage(userA);
+    } catch (err) {
+        console.error('Failed to load avatar A:', err);
+        avatarA = await loadImage('https://cdn.discordapp.com/embed/avatars/0.png');
+    }
+    try {
+        avatarB = await loadImage(userB);
+    } catch (err) {
+        console.error('Failed to load avatar B:', err);
+        avatarB = await loadImage('https://cdn.discordapp.com/embed/avatars/1.png');
+    }
 
-    // Draw avatars
-    drawCircularAvatar(ctx, avatarA, padding, height / 2 - avatarSize / 2, avatarSize);
-    drawCircularAvatar(ctx, avatarB, width - padding - avatarSize, height / 2 - avatarSize / 2, avatarSize);
+    // Calculate vertical center of rectangle
+    const rectCenterY = rectY + rectHeight / 2;
 
-    // Draw heart in the middle
+    // Avatars: vertically centered in rectangle, horizontally inside rectangle
+    const avatarY = rectCenterY - avatarSize / 2;
+    const avatarAX = rectX + 20;
+    const avatarBX = rectX + rectWidth - avatarSize - 20;
+
+    drawCircularAvatar(ctx, avatarA, avatarAX, avatarY, avatarSize);
+    drawCircularAvatar(ctx, avatarB, avatarBX, avatarY, avatarSize);
+
+    // Heart: centered horizontally, vertically in rectangle
     ctx.font = '64px Sans';
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
-    ctx.fillText('❤️', width / 2, height / 2 + 22);
+    const heartY = rectCenterY + 22;
+    ctx.fillText('❤️', width / 2, heartY);
 
-    // Draw percentage below the heart
+    // Percentage: below heart, but still inside rectangle
     ctx.font = 'bold 28px Sans';
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
-    // Place percent below the heart (heart Y is height/2 + 22, so add more offset)
-    ctx.fillText(`${porcent}%`, width / 2, height / 2 + 60);
+    const percentY = heartY + 38;
+    // Clamp percentY to not go outside rectangle
+    ctx.fillText(`${porcent}%`, width / 2, Math.min(percentY, rectY + rectHeight - 10));
 
     return canvas.toBuffer('image/png');
 }

@@ -7,7 +7,7 @@
 export { createXPWidget } from './xpWidget.js';
 
 // Leaderboard Widget
-export { drawLeaderboard } from './leaderboardWidget.js';
+export { default as drawLeaderboard } from './leaderboardWidget.js';
 
 // Ship Widget
 export { createUsersCanva } from './shipWidget.js';

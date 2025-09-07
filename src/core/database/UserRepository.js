@@ -7,17 +7,13 @@ import supabase from '../../database/supabaseClient.js';
 import { DATABASE_CONFIG } from '../../config/constants.js';
 
 export class UserRepository {
-  /**
-   * Get user XP data by user ID
-   * @param {string} userId - Discord user ID
-   * @returns {Promise<Object|null>} User XP data or null if not found
-   */
-  async getUserXP(userId) {
+  async getUserXP(userId, guildId) {
     try {
       const { data, error } = await supabase
-        .from(DATABASE_CONFIG.TABLES.USERS)
-        .select('global_xp, global_level')
-        .eq('id', userId)
+        .from(DATABASE_CONFIG.TABLES.USER_GUILD)
+        .select('xp, level')
+        .eq('user_id', userId)
+        .eq('guild_id', guildId)
         .single();
       
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
@@ -32,21 +28,12 @@ export class UserRepository {
     }
   }
 
-  /**
-   * Create a new user with initial XP and level
-   * @param {string} userId - Discord user ID
-   * @param {number} initialXP - Starting XP amount
-   * @param {number} initialLevel - Starting level
-   * @returns {Promise<boolean>} Success status
-   */
-  async createUser(userId, initialXP = 0, initialLevel = 1) {
+  async createUser(userId) {
     try {
       const { error } = await supabase
         .from(DATABASE_CONFIG.TABLES.USERS)
         .insert({ 
-          id: userId, 
-          global_xp: initialXP, 
-          global_level: initialLevel 
+          id: userId
         });
 
       if (error) {
@@ -61,24 +48,18 @@ export class UserRepository {
     }
   }
 
-  /**
-   * Update user XP and potentially level
-   * @param {string} userId - Discord user ID
-   * @param {number} newXP - New XP amount
-   * @param {number} newLevel - New level (optional)
-   * @returns {Promise<boolean>} Success status
-   */
-  async updateUserXP(userId, newXP, newLevel = null) {
+  async updateUserXP(userId, guildId, newXP, newLevel = null) {
     try {
-      const updateData = { global_xp: newXP };
+      const updateData = { xp: newXP };
       if (newLevel !== null) {
-        updateData.global_level = newLevel;
+        updateData.level = newLevel;
       }
 
       const { error } = await supabase
-        .from(DATABASE_CONFIG.TABLES.USERS)
+        .from(DATABASE_CONFIG.TABLES.USER_GUILD)
         .update(updateData)
-        .eq('id', userId);
+        .eq('user_id', userId)
+        .eq('guild_id', guildId);
 
       if (error) {
         console.error('Error updating user XP:', error);
@@ -92,23 +73,18 @@ export class UserRepository {
     }
   }
 
-  /**
-   * Get user rank position based on level and XP
-   * @param {number} level - User's level
-   * @param {number} xp - User's XP
-   * @returns {Promise<number>} Rank position (1-based)
-   */
-  async getUserRank(level, xp) {
+  async getUserRank(guildId, level, xp) {
     try {
       const { data: users } = await supabase
-        .from(DATABASE_CONFIG.TABLES.USERS)
-        .select('global_level, global_xp')
-        .order('global_level', { ascending: false })
-        .order('global_xp', { ascending: false });
+        .from(DATABASE_CONFIG.TABLES.USER_GUILD)
+        .select('level, xp')
+        .eq('guild_id', guildId)
+        .order('level', { ascending: false })
+        .order('xp', { ascending: false });
 
       if (!users) return 1;
 
-      const position = users.findIndex(u => u.global_level === level && u.global_xp === xp);
+      const position = users.findIndex(u => u.level === level && u.xp === xp);
       return position === -1 ? users.length + 1 : position + 1;
     } catch (error) {
       console.error('Database error in getUserRank:', error);
@@ -116,20 +92,23 @@ export class UserRepository {
     }
   }
 
-  /**
-   * Get leaderboard data for a guild
-   * @param {string} guildId - Discord guild ID
-   * @param {number} limit - Number of users to fetch
-   * @returns {Promise<Array>} Array of user data
-   */
-  async getLeaderboard(guildId, limit = DATABASE_CONFIG.LEADERBOARD_LIMIT) {
+  async getLeaderboard(guildId, limit) {
     try {
       const { data: leaderboard, error } = await supabase
         .from(DATABASE_CONFIG.TABLES.USER_GUILD)
-        .select('users(id, username, avatar, global_xp, global_level)')
-        .order('users(global_level)', { ascending: false })
-        .order('users(global_xp)', { ascending: false })
+        .select(`
+          user_id,
+          xp,
+          level,
+          users (
+            id,
+            username,
+            avatar
+          )
+        `)
         .eq('guild_id', guildId)
+        .order('level', { ascending: false })
+        .order('xp', { ascending: false })
         .limit(limit);
 
       if (error) {
@@ -144,24 +123,35 @@ export class UserRepository {
     }
   }
 
-  /**
-   * Reset user level and XP
-   * @param {string} userId - Discord user ID
-   * @returns {Promise<boolean>} Success status
-   */
-  async resetUser(userId) {
-    return this.updateUserXP(userId, 0, 1);
+  async resetUser(userId, guildId) {
+    return this.updateUserXP(userId, guildId, 0, 1);
   }
 
-  /**
-   * Set specific XP and level for a user
-   * @param {string} userId - Discord user ID
-   * @param {number} xp - XP to set
-   * @param {number} level - Level to set
-   * @returns {Promise<boolean>} Success status
-   */
-  async setUserXPLevel(userId, xp, level) {
-    return this.updateUserXP(userId, xp, level);
+  async setUserXPLevel(userId, guildId, xp, level) {
+    return this.updateUserXP(userId, guildId, xp, level);
+  }
+
+  async createUserGuild(userId, guildId, xp = 0, level = 1) {
+    try {
+      const { error } = await supabase
+        .from(DATABASE_CONFIG.TABLES.USER_GUILD)
+        .upsert({ 
+          user_id: userId,
+          guild_id: guildId,
+          xp: xp,
+          level: level
+        });
+
+      if (error) {
+        console.error('Error creating user guild entry:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Database error in createUserGuild:', error);
+      return false;
+    }
   }
 }
 

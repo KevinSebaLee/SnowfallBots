@@ -8,10 +8,23 @@ import { XPCalculator } from '../core/xp/XPCalculator.js';
 import { drawRoundedRect, drawCircularAvatar, getRankColor, drawTextWithShadow } from './canvasUtils.js';
 
 async function loadImageFromURL(url) {
-  const response = await axios.get(url, { responseType: 'arraybuffer' });
-  const img = new Image();
-  img.src = Buffer.from(response.data, 'binary');
-  return img;
+  try {
+    // For URLs that start with http/https
+    if (url.startsWith('http')) {
+      const response = await axios.get(url, { 
+        responseType: 'arraybuffer',
+        timeout: 5000 // 5 second timeout
+      });
+      const img = new Image();
+      img.src = Buffer.from(response.data, 'binary');
+      return img;
+    } 
+    // For file paths
+    return await loadImage(url);
+  } catch (error) {
+    console.error(`Error loading image from ${url}:`, error.message);
+    throw error;
+  }
 }
 
 export async function createXPWidget(user, userXP, posicion, id_guild, deviceWidth = 600, deviceHeight = 250) {
@@ -63,16 +76,20 @@ export async function createXPWidget(user, userXP, posicion, id_guild, deviceWid
   // Create canvas
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
-  const image = '';
-
-  // Draw background image (optional, use a default if not provided)
+  
+  // Convert relative path to absolute path for the background image
+  const image = path.resolve(process.cwd(), XP_CONFIG.BACKGROUND_IMAGE_URL);
+  
   if (image) {
     try {
+      // Try to load image from file path
       const bg = await loadImage(image);
+      
       // Calculate aspect ratio fit
       const imgRatio = bg.width / bg.height;
       const canvasRatio = width / height;
       let drawWidth, drawHeight, offsetX, offsetY;
+      
       if (imgRatio > canvasRatio) {
         drawHeight = height;
         drawWidth = bg.width * (height / bg.height);
@@ -84,9 +101,11 @@ export async function createXPWidget(user, userXP, posicion, id_guild, deviceWid
         offsetX = 0;
         offsetY = -(drawHeight - height) / 2;
       }
+      
       ctx.drawImage(bg, offsetX, offsetY, drawWidth, drawHeight);
-    } catch {
-      ctx.fillStyle = '#dbeafe';
+    } catch (error) {
+      console.error('Failed to load background image:', error.message);
+      ctx.fillStyle = COLORS.BACKGROUND || '#dbeafe';
       ctx.fillRect(0, 0, width, height);
     }
   } else {
@@ -103,10 +122,24 @@ export async function createXPWidget(user, userXP, posicion, id_guild, deviceWid
   ctx.restore();
 
   // Draw avatar (circle)
-  const avatarURL = user.displayAvatarURL({ extension: 'png', size: 256 });
-  const avatarImg = await loadImage(avatarURL);
-
-  drawCircularAvatar(ctx, avatarImg, avatarX, avatarY, avatarSize, 1, '#000');
+  let avatarURL;
+  try {
+    avatarURL = typeof user.displayAvatarURL === 'function' 
+      ? user.displayAvatarURL({ extension: 'png', size: 256 }) 
+      : user.avatarUrl || DISCORD_CONFIG.DEFAULT_AVATAR;
+      
+    const avatarImg = await loadImageFromURL(avatarURL);
+    drawCircularAvatar(ctx, avatarImg, avatarX, avatarY, avatarSize, 1, '#000');
+  } catch (error) {
+    console.error('Failed to load avatar image:', error.message);
+    // Draw a placeholder circle for the avatar
+    ctx.save();
+    ctx.fillStyle = '#888';
+    ctx.beginPath();
+    ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 
   // Username (inside overlay, proportional font)
   const usernameFontSize = isMobile ? Math.round(width * 0.07) : Math.round(width * 0.033);

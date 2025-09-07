@@ -12,7 +12,6 @@ import { XP_CONFIG, COLORS } from '../../config/constants.js';
 
 export class XPService {
     async processMessageXP(message) {
-        // Skip bots and users on cooldown
         if (message.author.bot || !cooldownManager.checkXPCooldown(message.author.id)) {
             return null;
         }
@@ -21,15 +20,14 @@ export class XPService {
         await xpEventManager.maybeActivateGlobalMultiplier(message);
         await xpEventManager.maybeActivateQuickXPEvent(message);
 
-        // Calculate XP gain
         const baseXP = XPCalculator.generateXPGain(xpEventManager.getMultiplier());
 
-        // Get or create user data
-        let userData = await userRepository.getUserXP(message.author.id);
+        // Get or create user data for this guild
+        let userData = await userRepository.getUserXP(message.author.id, message.guild.id);
 
         if (!userData) {
-            // New user - create with initial XP
-            await userRepository.createUser(message.author.id, baseXP, 1);
+            // New user in this guild - create entry with initial XP
+            await userRepository.createUserGuild(message.author.id, message.guild.id, baseXP, 1);
             return {
                 isLevelUp: false,
                 newLevel: 1,
@@ -38,13 +36,14 @@ export class XPService {
         }
 
         // Update existing user
-        const newXP = userData.global_xp + baseXP;
-        const levelUpInfo = XPCalculator.checkLevelUp(newXP, userData.global_level);
+        const newXP = userData.xp + baseXP;
+        const levelUpInfo = XPCalculator.checkLevelUp(newXP, userData.level);
 
         await userRepository.updateUserXP(
             message.author.id,
+            message.guild.id,
             newXP,
-            levelUpInfo.shouldLevelUp ? levelUpInfo.newLevel : userData.global_level
+            levelUpInfo.shouldLevelUp ? levelUpInfo.newLevel : userData.level
         );
 
         // if (levelUpInfo.shouldLevelUp) {
@@ -96,21 +95,26 @@ export class XPService {
         return milestones[level] || null;
     }
 
-    async getUserXPData(userId) {
-        const userData = await userRepository.getUserXP(userId);
+    async getUserXP(userId, guildId) {
+        return await userRepository.getUserXP(userId, guildId);
+    }
+
+    async getUserXPData(userId, guildId) {
+        const userData = await userRepository.getUserXP(userId, guildId);
 
         if (!userData) {
             return null;
         }
 
         const progress = XPCalculator.calculateLevelProgress(
-            userData.global_xp,
-            userData.global_level
+            userData.xp,
+            userData.level
         );
 
         const rank = await userRepository.getUserRank(
-            userData.global_level,
-            userData.global_xp
+            guildId,
+            userData.level,
+            userData.xp
         );
 
         return {
@@ -122,15 +126,15 @@ export class XPService {
         };
     }
 
-    async resetUserXP(userId) {
-        return await userRepository.resetUser(userId);
+    async resetUserXP(userId, guildId) {
+        return await userRepository.resetUser(userId, guildId);
     }
 
-    async setUserXP(userId, xp, level) {
-        return await userRepository.setUserXPLevel(userId, xp, level);
+    async setUserXP(userId, guildId, xp, level) {
+        return await userRepository.setUserXPLevel(userId, guildId, xp, level);
     }
 
-    async getLeaderboard(guildId, limit = XP_CONFIG.LEADERBOARD_LIMIT || 10) {
+    async getLeaderboard(guildId, limit) {
         return await userRepository.getLeaderboard(guildId, limit);
     }
 

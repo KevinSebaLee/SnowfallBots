@@ -3,12 +3,18 @@
  * Handles slash command interactions
  */
 
+// Import commands directly
 import ball8Command from '../commands/8ball_simple.js';
 import rankCommand from '../commands/rank_simple.js';
+// Import leaderboard using named imports
+import * as leaderboardCommand from '../commands/leaderboard.js';
+import shipCommand from '../commands/ship.js';
 
 const commands = {
   '8ball': ball8Command,
-  'rank': rankCommand
+  'rank': rankCommand,
+  'leaderboard': leaderboardCommand,
+  'ship': shipCommand,
 };
 
 export default function registerInteractionCreate(client) {

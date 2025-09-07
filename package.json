@@ -1,23 +1,24 @@
 {
-  "name": "cozybot",
+  "name": "brightsbot",
   "version": "1.0.0",
   "description": "Discord bot",
   "main": "server.js",
   "type": "module",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "deploy-commands": "node deploy-commands.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/KevinSebaLee/CozyBot.git"
+    "url": "git+https://github.com/KevinSebaLee/BrightsBot.git"
   },
   "author": "La Cozy Gang",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/KevinSebaLee/CozyBot/issues"
+    "url": "https://github.com/KevinSebaLee/BrightsBot/issues"
   },
-  "homepage": "https://github.com/KevinSebaLee/CozyBot#readme",
+  "homepage": "https://github.com/KevinSebaLee/BrightsBot#readme",
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",
     "axios": "^1.10.0",

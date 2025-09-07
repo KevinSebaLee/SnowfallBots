@@ -8,7 +8,7 @@ import { XP_CONFIG, COLORS, DISCORD_CONFIG } from '../config/constants.js';
 import { XPCalculator } from '../core/xp/XPCalculator.js';
 import { drawRoundedRect, drawRoundedRectLeft, drawCircularAvatar, getRankColor } from './canvasUtils.js';
 
-export async function drawLeaderboard(users) {
+export default async function drawLeaderboard(users) {
     const width = 650;
     const rowHeight = 70;
     const height = users.length * rowHeight + 50;
@@ -63,7 +63,7 @@ export async function drawLeaderboard(users) {
 
         // Draw name (above XP bar, left aligned)
         ctx.font = '20px Sans-serif';
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = '#00446A';
         ctx.textBaseline = 'bottom';
         ctx.textAlign = 'left';
         ctx.fillText(user.name, textX, xpBarY - 4);
@@ -81,7 +81,7 @@ export async function drawLeaderboard(users) {
         // Draw level text inside the box
         ctx.save();
         ctx.font = 'bold 15px Sans-serif';
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = '#008DC0';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(`Lv ${level}`, levelBoxX + levelBoxW / 2, levelBoxY + levelBoxH / 2);

@@ -56,9 +56,15 @@ const execute = async (interaction) => {
             user2.username.slice(0, Math.ceil(user2.username.length / 2)) +
             user1.username.slice(Math.floor(user1.username.length / 2));
 
-        const avatar1 = user1.displayAvatarURL({ extension: "png", size: 256 });
-        const avatar2 = user2.displayAvatarURL({ extension: "png", size: 256 });
+        // Get user avatars with explicit format and size
+        const avatar1 = user1.displayAvatarURL({ extension: "png", size: 256, forceStatic: true });
+        const avatar2 = user2.displayAvatarURL({ extension: "png", size: 256, forceStatic: true });
+        
+        console.log('Avatar URLs:');
+        console.log('Avatar 1:', avatar1);
+        console.log('Avatar 2:', avatar2);
 
+        // Create ship image
         const shipImageBuffer = await createUsersCanva(avatar1, avatar2, percentage);
 
         const compatibilityText = `Nombre del ship: **${shipName}**\n**La compatibilidad es de un **${percentage}%**.`;
@@ -78,13 +84,17 @@ const execute = async (interaction) => {
         });
     } catch (err) {
         console.error("Error sending ship:", err);
+        // Debugging: log stack trace and error details
+        if (err && err.stack) {
+            console.error("Stack trace:", err.stack);
+        }
         if (interaction.deferred || interaction.replied) {
             await interaction.editReply({
-                content: "No se pudo enviar el barco. Inténtalo de nuevo más tarde."
+                content: `No se pudo enviar el ship. Inténtalo de nuevo más tarde.\n\nError: ${err.message || err}`
             });
         } else {
             await interaction.reply({
-                content: "No se pudo enviar el barco. Inténtalo de nuevo más tarde.",
+                content: `No se pudo enviar el ship. Inténtalo de nuevo más tarde.\n\nError: ${err.message || err}`,
                 ephemeral: true
             });
         }
@@ -92,4 +102,5 @@ const execute = async (interaction) => {
 };
 
 const shipCommand = { data, execute };
+
 export default shipCommand;
