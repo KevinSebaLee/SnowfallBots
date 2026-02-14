@@ -3,8 +3,7 @@
  * Registers all slash commands with Discord
  */
 
-import pkg from 'discord.js';
-const { REST, Routes } = pkg;
+import { REST, Routes } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

@@ -1,5 +1,4 @@
-import pkg from 'discord.js';
-const { Client, GatewayIntentBits } = pkg;
+import { Client, GatewayIntentBits } from 'discord.js';
 import dotenv from 'dotenv';
 import registerEvents from './src/events/index.js';
 

@@ -3,8 +3,7 @@
  * Magic 8-ball responses
  */
 
-import pkg from 'discord.js';
-const { SlashCommandBuilder } = pkg;
+import { SlashCommandBuilder } from 'discord.js';
 
 const responses = [
   'Es cierto.',

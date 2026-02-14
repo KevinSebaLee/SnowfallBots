@@ -1,5 +1,4 @@
-import pkg from 'discord.js';
-const { AttachmentBuilder } = pkg;
+import { AttachmentBuilder } from 'discord.js';
 import { createCanvas, loadImage, Image } from 'canvas';
 import axios from 'axios';
 import path from 'path';

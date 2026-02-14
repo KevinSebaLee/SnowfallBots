@@ -1,6 +1,5 @@
 // Simple test command
-import pkg from 'discord.js';
-const { SlashCommandBuilder } = pkg;
+import { SlashCommandBuilder } from 'discord.js';
 
 const data = new SlashCommandBuilder()
   .setName('test')
