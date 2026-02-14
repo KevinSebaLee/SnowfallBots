@@ -42,55 +42,48 @@ const customFetch = async (url, options = {}) => {
   }
 };
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false
-    },
-    global: {
-      fetch: customFetch,
-      headers: {
-        'Accept-Encoding': 'gzip, deflate',
-        'Cache-Control': 'no-cache'
+let supabase = null;
+
+if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      },
+      global: {
+        fetch: customFetch,
+        headers: {
+          'Accept-Encoding': 'gzip, deflate',
+          'Cache-Control': 'no-cache'
+        }
       }
     }
-  }
-);
+  );
 
-(async () => {
-  try {
-    console.log('Testing Supabase connection...');
-    console.log('Supabase URL:', process.env.SUPABASE_URL);
-    console.log('Supabase Key:', process.env.SUPABASE_SERVICE_ROLE_KEY 
-      ? '***' + process.env.SUPABASE_SERVICE_ROLE_KEY.slice(-4) 
-      : 'MISSING');
-    
-    // Test basic API access
-    const testRes = await fetch(`${process.env.SUPABASE_URL}/rest/v1/`, {
-      headers: {
-        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY
-      }
-    });
-    console.log(`Basic API test: ${testRes.status} ${testRes.statusText}`);
-    
-    // // Test Supabase client query
-    // const { data, error } = await supabase
-    //   .from('Usuarios')
-    //   .select('*')
-    //   .limit(1);
-    
-    // if (error) throw error;
-    // console.log('✅ Supabase connection successful!');
-    // console.log('Sample data:', data);
-  } catch (err) {
-    console.error('❌ Connection failed:', {
-      message: err.message,
-      stack: err.stack
-    });
-  }
-})();
+  (async () => {
+    try {
+      console.log('Testing Supabase connection...');
+      console.log('Supabase URL:', process.env.SUPABASE_URL);
+      console.log('Supabase Key:', '***' + process.env.SUPABASE_SERVICE_ROLE_KEY.slice(-4));
+
+      const testRes = await fetch(`${process.env.SUPABASE_URL}/rest/v1/`, {
+        headers: {
+          'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY
+        }
+      });
+      console.log(`Basic API test: ${testRes.status} ${testRes.statusText}`);
+    } catch (err) {
+      console.error('❌ Connection failed:', {
+        message: err.message,
+        stack: err.stack
+      });
+    }
+  })();
+} else {
+  console.warn('⚠️ SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set. Database features will be unavailable.');
+}
 
 export default supabase;

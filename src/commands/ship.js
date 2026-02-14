@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { createUsersCanva } from "../ui/index.js";
 
 const data = new SlashCommandBuilder()
