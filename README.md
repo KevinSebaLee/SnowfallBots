@@ -1,6 +1,6 @@
-# CozyBot
+# SnowfallBots
 
-CozyBot is a Discord bot developed by Cozy Haven to enhance your server experience with custom features, automation, and integrations.
+CozyBot is a Discord bot developed by Snowfall Nights to enhance your server experience with custom features, automation, and integrations.
 
 ## Features
 
@@ -73,7 +73,7 @@ See [`package.json`](./package.json) for a full list.
 
 ## Contributing
 
-Issues and pull requests are welcome! Please use the [issue tracker](https://github.com/KevinSebaLee/CozyBot/issues).
+Issues and pull requests are welcome! Please use the [issue tracker](https://github.com/KevinSebaLee/SnowfallBots/issues).
 
 ## License
 
@@ -81,3 +81,4 @@ ISC © Cozy Haven
 
 ---
 *This README was generated with the available project files and may need updates for new features or structural changes.*
+
