@@ -3,7 +3,8 @@
  * Orchestrates all XP-related operations and provides a clean interface for other modules
  */
 
-import { EmbedBuilder } from 'discord.js';
+import pkg from 'discord.js';
+const { EmbedBuilder } = pkg;
 import { userRepository } from '../database/UserRepository.js';
 import { XPCalculator } from './XPCalculator.js';
 import { xpEventManager } from './XPEventManager.js';

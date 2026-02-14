@@ -3,7 +3,8 @@
  * Shows top users by XP/level with visual widget
  */
 
-import { SlashCommandBuilder, AttachmentBuilder } from 'discord.js';
+import pkg from 'discord.js';
+const { SlashCommandBuilder, AttachmentBuilder } = pkg;
 import { xpService } from '../core/xp/XPService.js';
 import { XP_CONFIG } from '../config/constants.js';
 import drawLeaderboard from '../ui/leaderboardWidget.js';

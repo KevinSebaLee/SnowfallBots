@@ -1,4 +1,5 @@
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
+import pkg from 'discord.js';
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = pkg;
 import { XP_CONFIG, COLORS } from '../../config/constants.js';
 import { userRepository } from '../database/UserRepository.js';
 import { XPCalculator } from './XPCalculator.js';

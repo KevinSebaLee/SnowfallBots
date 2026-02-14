@@ -1,4 +1,5 @@
-import { SlashCommandBuilder } from 'discord.js';
+import pkg from 'discord.js';
+const { SlashCommandBuilder } = pkg;
 import { xpService } from '../core/xp/XPService.js';
 import { createXPWidget } from '../ui/index.js';
 import { userRepository } from '../core/database/UserRepository.js';

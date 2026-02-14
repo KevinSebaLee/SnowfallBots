@@ -3,7 +3,8 @@
  * Resets a user's level and XP back to starting values
  */
 
-import { SlashCommandBuilder } from 'discord.js';
+import pkg from 'discord.js';
+const { SlashCommandBuilder } = pkg;
 import { xpService } from '../core/xp/XPService.js';
 
 const data = new SlashCommandBuilder()
